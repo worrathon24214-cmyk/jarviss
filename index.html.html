@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS AI Interface</title>
+    <!-- ใช้ Tailwind CSS แต่งหน้าตาแบบล้ำๆ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glowing-circle {
+            box-shadow: 0 0 50px #00f3ff, inset 0 0 30px #00f3ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-cyan-400 min-h-screen flex flex-col items-center justify-center p-4 font-mono">
+
+    <!-- JARVIS Core Visual -->
+    <div class="relative flex items-center justify-center mb-8">
+        <div id="arc-reactor" class="w-48 h-48 rounded-full border-4 border-cyan-500 glowing-circle flex items-center justify-center transition-all duration-500">
+            <span id="status-text" class="text-sm font-bold tracking-widest text-center px-4 text-white">ONLINE</span>
+        </div>
+    </div>
+
+    <h1 class="text-3xl font-bold tracking-wider mb-2 text-white">J.A.R.V.I.S.</h1>
+    <p class="text-gray-400 text-sm mb-6">ระบบผู้ช่วยอัจฉริยะแบบเว็บ</p>
+
+    <!-- ปุ่มควบคุม -->
+    <div class="flex gap-4 mb-6">
+        <button id="start-btn" onclick="startListening()" class="bg-cyan-600 hover:bg-cyan-500 text-black font-bold py-2 px-6 rounded-full transition-all">
+            🎙️ เริ่มพูด (Listen)
+        </button>
+    </div>
+
+    <!-- กล่องแสดงผลข้อความ -->
+    <div class="w-full max-w-lg bg-gray-900 border border-cyan-800 rounded-lg p-4 h-48 overflow-y-auto space-y-2">
+        <p class="text-gray-500 text-xs">// LOGS</p>
+        <div id="chat-box" class="text-sm space-y-2">
+            <p><span class="text-cyan-500">JARVIS:</span> พร้อมทำงานแล้วครับ Boss</p>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const statusText = document.getElementById('status-text');
+        const arcReactor = document.getElementById('arc-reactor');
+
+        // Check Web Speech API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            alert("เบราว์เซอร์นี้ไม่รองรับ Speech Recognition แนะนำให้ใช้ Google Chrome ครับ");
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'th-TH'; // กำหนดให้ฟังภาษาไทย (เปลี่ยนเป็น 'en-US' ได้)
+            recognition.interimResults = false;
+
+            function startListening() {
+                recognition.start();
+                statusText.innerText = "LISTENING...";
+                arcReactor.classList.add("border-yellow-400");
+            }
+
+            recognition.onresult = (event) => {
+                const userText = event.results[0][0].transcript;
+                appendMessage("YOU", userText, "text-white");
+                statusText.innerText = "PROCESSING...";
+                
+                // ส่งไปประมวลผลคำตอบ (จำลอง AI Response)
+                processAIResponse(userText);
+            };
+
+            recognition.onspeechend = () => {
+                recognition.stop();
+            };
+
+            recognition.onerror = (event) => {
+                statusText.innerText = "ERROR";
+                appendMessage("SYSTEM", "ไม่สามารถตรวจจับเสียงได้: " + event.error, "text-red-400");
+            };
+        }
+
+        // ฟังก์ชันประมวลผล AI และตอบกลับ
+        async function processAIResponse(userQuery) {
+            let replyText = "ขออภัยครับคุณท่าน เกิดข้อผิดพลาดในการประมวลผล";
+
+            // --- ส่วนนี้สามารถนำไปเชื่อมต่อ Gemini API หรือ OpenAI API ได้ ---
+            if (userQuery.includes("สวัสดี")) {
+                replyText = "สวัสดีครับ Boss มีอะไรให้ผมรับใช้ครับ?";
+            } else if (userQuery.includes("ชื่ออะไร")) {
+                replyText = "ผมคือ จาวิส ระบบผู้ช่วยอัจฉริยะของคุณครับ";
+            } else {
+                replyText = คุณสั่งว่า "${userQuery}" ใช่ไหมครับ? ระบบกำลังรอเชื่อมต่อกับ AI Brain เพิ่มเติม;
+            }
+
+            appendMessage("JARVIS", replyText, "text-cyan-400");
+            speak(replyText);
+        }
+
+        // ฟังก์ชันแปลงข้อความให้เป็นเสียงพูด (Text-to-Speech)
+        function speak(text) {
+            statusText.innerText = "SPEAKING...";
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'th-TH';
+            utterance.rate = 1.0; // ความเร็วเสียง
+            
+            utterance.onend = () => {
+                statusText.innerText = "ONLINE";
+                arcReactor.classList.remove("border-yellow-400");
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // ฟังก์ชันเพิ่มข้อความลงใน Chat Box
+        function appendMessage(sender, text, colorClass) {
+            const p = document.createElement('p');
+            p.className = colorClass;
+            p.innerHTML = <span class="font-bold">${sender}:</span> ${text};
+            chatBox.appendChild(p);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
